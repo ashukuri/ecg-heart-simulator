@@ -160,6 +160,13 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href={`${import.meta.env.BASE_URL}guide.html`}
+              className="px-2 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            >
+              使い方・このシミュレーターについて
+            </a>
+
             {/* 電気ベクトル OFF / ON 独立トグル（仕様20） */}
             <button
               onClick={() => setShowElectricVector((v) => !v)}

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ECG Heart Simulator | 使い方・解説</title>
+    <style>
+      :root { color: #243447; background: #f5f7fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.8; }
+      body { margin: 0; }
+      main { max-width: 900px; margin: 0 auto; padding: 32px 20px 56px; }
+      header, section { background: #fff; border: 1px solid #dbe3ec; border-radius: 12px; padding: 24px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(30, 55, 80, .04); }
+      h1, h2 { color: #183b56; line-height: 1.35; }
+      h1 { margin-top: 0; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+      h2 { font-size: 1.25rem; border-left: 4px solid #6ca6c1; padding-left: 10px; }
+      a { color: #176b87; }
+      .lead { font-size: 1.05rem; }
+      .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 0; list-style: none; }
+      .legend li { border-radius: 8px; padding: 10px 12px; background: #eef3f7; }
+      .normal { border-left: 6px solid #f2c94c; }
+      .delay { border-left: 6px solid #f2994a; }
+      .block { border-left: 6px solid #d64545; }
+      .depolarization { border-left: 6px solid #b9e6f2; }
+      .repolarization { border-left: 6px solid #718096; }
+      .infarct { border-left: 6px solid #713f5c; }
+      .notice { background: #fff8e6; border-color: #efd38a; }
+      footer { color: #5d7182; font-size: .9rem; text-align: center; }
+      @media (max-width: 600px) { main { padding: 16px 12px 36px; } header, section { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>ECG Heart Simulator</h1>
+        <p class="lead">12誘導心電図と、心臓内の刺激伝導・心筋の興奮を同じ時間軸で観察する医学教育用シミュレーターです。</p>
+        <p><a href="./">シミュレーターへ戻る</a></p>
+      </header>
+
+      <section>
+        <h2>このシミュレーターとは</h2>
+        <p>医学・看護・医療系の学生などを対象に、心臓のどこから興奮が始まり、どの経路を伝わり、どこで遅れ、その結果として12誘導ECGにどのような波形が現れるのかを学ぶための教材です。</p>
+        <p>疾患を選択すると、中央の心臓、Activation Front、12誘導ECG、解説がMaster Timeline上で同期します。</p>
+      </section>
+
+      <section>
+        <h2>何が学べるか</h2>
+        <p>正常洞調律、伝導障害、不整脈、心筋梗塞、電解質異常など、コード上の26疾患を比較できます。波形の暗記だけでなく、興奮伝播と電気ベクトルが波形へ反映される過程を確認できます。</p>
+        <p>12誘導では、各誘導が心臓を異なる方向から見ていることを意識し、P波・QRS波・T波、ST変化、軸や極性を中央の心臓表示と照合してください。</p>
+      </section>
+
+      <section>
+        <h2>中央の心臓表示と色の意味</h2>
+        <ul class="legend">
+          <li class="normal">黄色：正常な刺激伝導</li>
+          <li class="delay">オレンジ：遅延伝導</li>
+          <li class="block">赤：block（伝導遮断）</li>
+          <li class="depolarization">淡い水色：心筋脱分極</li>
+          <li class="repolarization">青灰色：再分極</li>
+          <li class="infarct">暗い赤紫・灰色：梗塞領域</li>
+        </ul>
+        <p>Activation Frontは、心筋のどの領域が時間軸上で興奮しているかを示します。ECGカーソルを動かしながら、心臓内の変化と各誘導の波形を比較してください。</p>
+      </section>
+
+      <section>
+        <h2>操作方法</h2>
+        <ol>
+          <li>左側の疾患一覧から観察したい疾患を選びます。</li>
+          <li>誘導カードを選ぶと、右側の解説がその誘導に切り替わります。</li>
+          <li>「電気ベクトル ON/OFF」で平均電気ベクトルを表示・非表示にします。</li>
+          <li>「正常と比較 ON/OFF」で正常波形との比較を切り替えます。</li>
+          <li>教育用0.25×は、時間関係を観察しやすくする固定スロー再生です。実時間4秒が生理時間1秒に相当します。</li>
+        </ol>
+      </section>
+
+      <section class="notice">
+        <h2>注意事項</h2>
+        <p>本シミュレーターは教育目的です。診断・治療判断には使用しないでください。</p>
+        <p>実患者の心電図を再現する医療機器ではなく、教育用の典型的・模式的表現です。</p>
+      </section>
+
+      <footer>ECG Heart Simulator</footer>
+    </main>
+  </body>
+</html>
