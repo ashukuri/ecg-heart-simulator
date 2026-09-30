@@ -14,6 +14,11 @@ interface PolylineDefinition {
 }
 
 /** Drawing coordinates only; each path keeps its existing timeline ID. */
+const RETROGRADE_ATRIAL_POINTS: Partial<Record<ConductionPathId, [number, number][]>> = {
+  internodal_ra: [[184, 170], [151, 159], [116, 142], [103, 119], [116, 100]],
+  internodal_la: [[184, 170], [211, 148], [241, 132], [270, 105], [283, 84]],
+};
+
 const CONDUCTION_GEOMETRY: PolylineDefinition[] = [
   { id: 'sa_node', points: [[104, 85], [112, 85]], isNode: true, nodeCenter: [108, 85], nodeRadius: [9, 6] },
   { id: 'internodal_ra', points: [[108, 85], [105, 119], [135, 144], [181, 165]] },
@@ -99,18 +104,29 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }
           const state = snapshot.paths[geo.id];
           if (!state || !state.visible) return null;
 
-          const pathD = pointsToPathD(geo.points);
+          // Junctional beats use the existing retrograde progress, but begin
+          // the atrial drawing at the AV junction rather than the sinus node.
+          if (geo.id === 'sa_node' && snapshot.sourceRegion === 'av_junction' && !snapshot.saNodeFiring) {
+            return <ellipse key={geo.id} cx={108} cy={85} rx={9} ry={6}
+              fill="#475569" stroke="#94a3b8" strokeWidth={1.3} opacity={0.6}>
+              <title>洞結節：停止（発火なし）</title>
+            </ellipse>;
+          }
+          const points = snapshot.atrialPropagation === 'retrograde'
+            ? RETROGRADE_ATRIAL_POINTS[geo.id] ?? geo.points
+            : geo.points;
+          const pathD = pointsToPathD(points);
           const activeColor = getStrokeColor(state.status);
           const isExcited = state.progress > 0.01 && state.status !== 'waiting';
-          const tipPoint = getPointAlongPolyline(geo.points, state.progress);
-          const blockMid = getPointAlongPolyline(geo.points, 0.45);
+          const tipPoint = getPointAlongPolyline(points, state.progress);
+          const blockMid = getPointAlongPolyline(points, 0.45);
 
           return (
             <g
               key={geo.id}
-              onMouseEnter={() => handlePointerEnter(geo.id, geo.points)}
+              onMouseEnter={() => handlePointerEnter(geo.id, points)}
               onMouseLeave={() => setHoveredId(null)}
-              onTouchStart={() => handlePointerEnter(geo.id, geo.points)}
+              onTouchStart={() => handlePointerEnter(geo.id, points)}
               className="cursor-pointer"
             >
               {/* 待機中のベース伝導路（常時薄く表示） */}

@@ -7,11 +7,11 @@ import { HeartDiagram } from './components/HeartDiagram';
 import { ECGLeadPanel } from './components/ECGLeadPanel';
 import { ExplanationPanel } from './components/ExplanationPanel';
 import {
-  advanceMasterTimeSec,
   ECG_WINDOW_SEC,
   STAGE_BASE_WIDTH,
   STAGE_BASE_HEIGHT,
 } from './utils/ecgGenerator';
+import { advancePlaybackTimeSec, PLAYBACK_SPEEDS, type PlaybackSpeed } from './utils/playbackClock';
 import { evaluateMasterTimeline } from './utils/timelineEngine';
 import { Compass, GitCompare, Heart, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export const App: React.FC = () => {
 
   // 単一の Master Timeline（生理学的秒: 0.00 〜 scenarioDurationSec）
   const [masterTimeSec, setMasterTimeSec] = useState<number>(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(0.25);
 
   // 独立トグル: 正常比較 (初期OFF) ＆ 平均電気ベクトル (初期OFF)
   const [compareMode, setCompareMode] = useState<boolean>(false);
@@ -67,7 +68,7 @@ export const App: React.FC = () => {
     };
   }, [showExplanation]);
 
-  // Master Timeline 自動ループエンジン (EDUCATION_TIME_SCALE = 0.25 を全体へ均一適用)
+  // Single shared physiological clock; speed changes preserve the current phase.
   useEffect(() => {
     lastTimeRef.current = performance.now();
 
@@ -79,7 +80,7 @@ export const App: React.FC = () => {
       const clampedDeltaSec = Math.min(0.1, Math.max(0, deltaRealMs / 1000));
 
       setMasterTimeSec((prev) =>
-        advanceMasterTimeSec(prev, clampedDeltaSec, scenarioDurationSec)
+        advancePlaybackTimeSec(prev, clampedDeltaSec, scenarioDurationSec, playbackSpeed)
       );
 
       animFrameRef.current = requestAnimationFrame(tick);
@@ -92,7 +93,7 @@ export const App: React.FC = () => {
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [scenarioDurationSec, currentDisease.id]);
+  }, [scenarioDurationSec, currentDisease.id, playbackSpeed]);
 
   // 疾患切替時：必ず master timeline を 0 にリセットし、0から自動再生を開始する（仕様15）
   const handleSelectDisease = (disease: Disease) => {
@@ -126,6 +127,7 @@ export const App: React.FC = () => {
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans text-slate-800">
       {/* 1. 左サイドバー：疾患一覧セレクター */}
       <DiseaseSelector
+        playbackSpeed={playbackSpeed}
         currentDiseaseId={currentDisease.id}
         onSelectDisease={handleSelectDisease}
       />
@@ -150,13 +152,17 @@ export const App: React.FC = () => {
               {currentDisease.hrDisplay || 'HR 75 bpm'}
             </span>
 
-            {/* 教育用 0.25× 固定スロー再生バッジ（速度切替UIは置かず静的に明示） */}
-            <span
-              className="px-2 py-0.5 text-[10.5px] font-mono font-semibold rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0"
-              title={`生理学的タイムライン（周期 ${scenarioDurationSec.toFixed(2)}s / 表示窓 ${ECG_WINDOW_SEC.toFixed(2)}s）を0.25倍速（実時間4.0s = 生理時間1.0s）で再生中`}
+            <select
+              aria-label="再生速度"
+              value={playbackSpeed}
+              onChange={(event) => setPlaybackSpeed(Number(event.target.value) as PlaybackSpeed)}
+              className="px-2 py-0.5 text-[10.5px] font-mono font-semibold rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0 cursor-pointer"
+              title={`再生速度 ${playbackSpeed}×（周期 ${scenarioDurationSec.toFixed(2)}s / 表示窓 ${ECG_WINDOW_SEC.toFixed(2)}s）。心臓とECGを同期して変更します。`}
             >
-              教育用 0.25× ({scenarioDurationSec.toFixed(2)}s周期)
-            </span>
+              {PLAYBACK_SPEEDS.map((speed) => (
+                <option key={speed} value={speed}>教育用 {speed}× ({scenarioDurationSec.toFixed(2)}s周期)</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

@@ -5,11 +5,13 @@ import { Search, HeartPulse } from 'lucide-react';
 
 interface DiseaseSelectorProps {
   currentDiseaseId: string;
+  playbackSpeed: number;
   onSelectDisease: (disease: Disease) => void;
 }
 
 export const DiseaseSelector: React.FC<DiseaseSelectorProps> = ({
   currentDiseaseId,
+  playbackSpeed,
   onSelectDisease,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<DiseaseCategory | 'all'>('all');
@@ -146,7 +148,7 @@ export const DiseaseSelector: React.FC<DiseaseSelectorProps> = ({
       <div className="p-2.5 border-t border-slate-200 text-[10px] text-slate-500 bg-slate-50 flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span>全 {ALL_DISEASES.length} 疾患収録（標準12誘導）</span>
-          <span className="font-mono">教育用 0.25×</span>
+          <span className="font-mono">教育用 {playbackSpeed}×</span>
         </div>
         <p className="text-[9.5px] text-slate-400 leading-tight">
           本シミュレーターは教育目的です。診断・治療判断には使用しないでください。

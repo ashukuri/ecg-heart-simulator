@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "validate:ecg": "node scripts/validateEcg.mjs",
+    "validate:render": "node scripts/validatePlaybackRendering.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

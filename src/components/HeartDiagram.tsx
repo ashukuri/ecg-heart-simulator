@@ -48,6 +48,7 @@ interface SubSegmentWaveFrontTrack {
   id: MyocardialSubSegmentId;
   startPt: [number, number];
   endPt: [number, number];
+  controlPt?: [number, number];
 }
 
 /**
@@ -69,6 +70,13 @@ const SUB_SEGMENT_FRONT_TRACKS: SubSegmentWaveFrontTrack[] = [
   { id: 'lv_lateral', startPt: [304, 285], endPt: [316, 235] },
   { id: 'lv_basal', startPt: [315, 224], endPt: [303, 174] },
 ];
+
+// Retrograde atrial fronts climb from the valve/junction side along the walls.
+const RETROGRADE_ATRIAL_TRACKS: Partial<Record<MyocardialSubSegmentId, SubSegmentWaveFrontTrack>> = {
+  ra_inferior: { id: 'ra_inferior', startPt: [156, 168], controlPt: [80, 178], endPt: [85, 124] },
+  ra_superior: { id: 'ra_superior', startPt: [162, 77], endPt: [111, 80] },
+  la_body: { id: 'la_body', startPt: [307, 145], controlPt: [334, 93], endPt: [281, 65] },
+};
 
 export const HeartDiagram: React.FC<HeartDiagramProps> = ({
   snapshot,
@@ -221,12 +229,18 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
 
             {/* 2b. 各サブセグメント内を進行する Activation Front 波頭ハイライトバンド */}
             <g className="pointer-events-none" clipPath="url(#myocardium-clip)" filter="url(#conduction-glow)">
-              {SUB_SEGMENT_FRONT_TRACKS.map((track) => {
+              {SUB_SEGMENT_FRONT_TRACKS.map((normalTrack) => {
+                const track = snapshot.atrialPropagation === 'retrograde'
+                  ? RETROGRADE_ATRIAL_TRACKS[normalTrack.id] ?? normalTrack
+                  : normalTrack;
                 const sub = subSegments[track.id];
                 if (!sub || sub.phase !== 'front_active' || sub.isInfarcted) return null;
                 const p = sub.frontProgress;
-                const cx = track.startPt[0] + (track.endPt[0] - track.startPt[0]) * p;
-                const cy = track.startPt[1] + (track.endPt[1] - track.startPt[1]) * p;
+                const position = (axis: 0 | 1) => track.controlPt
+                  ? (1 - p) ** 2 * track.startPt[axis] + 2 * (1 - p) * p * track.controlPt[axis] + p ** 2 * track.endPt[axis]
+                  : track.startPt[axis] + (track.endPt[axis] - track.startPt[axis]) * p;
+                const cx = position(0);
+                const cy = position(1);
                 const isSlowOrEctopic =
                   sub.propagationMode === 'transmyocardial_slow' ||
                   sub.propagationMode === 'ectopic' ||
@@ -235,7 +249,7 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
                 const ringColor = isSlowOrEctopic ? '#ea580c' : '#38bdf8';
 
                 return (
-                  <g key={`front-wave-${track.id}`} transform={`translate(${cx}, ${cy})`}>
+                  <g key={`front-wave-${track.id}`} data-front={track.id} transform={`translate(${cx}, ${cy})`}>
                     <circle r={7.5} fill={frontColor} opacity={0.42} />
                     <circle
                       r={4.2}
