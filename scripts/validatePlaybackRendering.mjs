@@ -5,7 +5,7 @@ import { createServer } from 'vite';
 
 const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
 try {
-  const { advancePlaybackTimeSec, PLAYBACK_SPEEDS } = await server.ssrLoadModule('/src/utils/playbackClock.ts');
+  const { advancePlaybackTimeSec, clampPlaybackTimeSec, PLAYBACK_SPEEDS } = await server.ssrLoadModule('/src/utils/playbackClock.ts');
   const { evaluateMasterTimeline } = await server.ssrLoadModule('/src/utils/timelineEngine.ts');
   const { getDiseaseById } = await server.ssrLoadModule('/src/data/diseases/index.ts');
   const { HeartDiagram } = await server.ssrLoadModule('/src/components/HeartDiagram.tsx');
@@ -15,6 +15,11 @@ try {
   }
   const afterChange = advancePlaybackTimeSec(advancePlaybackTimeSec(0.3, 0.1, 2.4, 0.25), 0.1, 2.4, 1);
   assert.ok(Math.abs(afterChange - 0.425) < 1e-12, 'changing speed must not reset the phase');
+  assert.equal(clampPlaybackTimeSec(-1, 2.4), 0);
+  assert.equal(clampPlaybackTimeSec(3, 2.4), 2.4);
+  assert.equal(clampPlaybackTimeSec(1.27, 2.4), 1.27);
+  assert.equal(clampPlaybackTimeSec(NaN, 2.4), 0);
+  assert.ok(Math.abs(advancePlaybackTimeSec(clampPlaybackTimeSec(2.4, 2.4), 0.1, 2.4, 1) - 0.1) < 1e-12);
   const junctional = getDiseaseById('junctional_rhythm');
   let atrialSamples = 0;
   const lowerRAFronts = [];

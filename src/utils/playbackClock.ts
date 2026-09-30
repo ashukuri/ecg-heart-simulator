@@ -14,3 +14,9 @@ export function advancePlaybackTimeSec(
     currentTimeSec, realDeltaSec * (speed / EDUCATION_TIME_SCALE), scenarioDurationSec,
   );
 }
+
+// Seeking includes both endpoints; resuming from the end uses the normal loop.
+export function clampPlaybackTimeSec(timeSec: number, durationSec: number): number {
+  if (!Number.isFinite(timeSec)) return 0;
+  return Math.min(Math.max(0, timeSec), Math.max(0, durationSec));
+}

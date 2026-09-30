@@ -7,13 +7,12 @@ import { HeartDiagram } from './components/HeartDiagram';
 import { ECGLeadPanel } from './components/ECGLeadPanel';
 import { ExplanationPanel } from './components/ExplanationPanel';
 import {
-  ECG_WINDOW_SEC,
   STAGE_BASE_WIDTH,
   STAGE_BASE_HEIGHT,
 } from './utils/ecgGenerator';
-import { advancePlaybackTimeSec, PLAYBACK_SPEEDS, type PlaybackSpeed } from './utils/playbackClock';
+import { advancePlaybackTimeSec, clampPlaybackTimeSec, PLAYBACK_SPEEDS, type PlaybackSpeed } from './utils/playbackClock';
 import { evaluateMasterTimeline } from './utils/timelineEngine';
-import { Compass, GitCompare, Heart, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Compass, GitCompare, Heart, Pause, Play, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentDisease, setCurrentDisease] = useState<Disease>(ALL_DISEASES[0]);
@@ -21,6 +20,8 @@ export const App: React.FC = () => {
 
   // 単一の Master Timeline（生理学的秒: 0.00 〜 scenarioDurationSec）
   const [masterTimeSec, setMasterTimeSec] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const playbackRunningRef = useRef(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(0.25);
 
   // 独立トグル: 正常比較 (初期OFF) ＆ 平均電気ベクトル (初期OFF)
@@ -71,8 +72,10 @@ export const App: React.FC = () => {
   // Single shared physiological clock; speed changes preserve the current phase.
   useEffect(() => {
     lastTimeRef.current = performance.now();
+    if (!isPlaying) return;
 
     const tick = (now: number) => {
+      if (!playbackRunningRef.current) return;
       const deltaRealMs = now - lastTimeRef.current;
       lastTimeRef.current = now;
 
@@ -91,14 +94,29 @@ export const App: React.FC = () => {
     return () => {
       if (animFrameRef.current !== null) {
         cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
       }
     };
-  }, [scenarioDurationSec, currentDisease.id, playbackSpeed]);
+  }, [scenarioDurationSec, currentDisease.id, playbackSpeed, isPlaying]);
 
-  // 疾患切替時：必ず master timeline を 0 にリセットし、0から自動再生を開始する（仕様15）
+  // Switching disease resets time while preserving the user's pause state.
   const handleSelectDisease = (disease: Disease) => {
     setCurrentDisease(disease);
     setMasterTimeSec(0);
+    lastTimeRef.current = performance.now();
+  };
+
+  const handleTogglePlayback = () => {
+    playbackRunningRef.current = !playbackRunningRef.current;
+    lastTimeRef.current = performance.now();
+    setIsPlaying(playbackRunningRef.current);
+  };
+
+  const handleSeek = (timeSec: number) => {
+    // Pause immediately, including any RAF queued before React commits state.
+    playbackRunningRef.current = false;
+    setIsPlaying(false);
+    setMasterTimeSec(clampPlaybackTimeSec(timeSec, scenarioDurationSec));
     lastTimeRef.current = performance.now();
   };
 
@@ -152,17 +170,7 @@ export const App: React.FC = () => {
               {currentDisease.hrDisplay || 'HR 75 bpm'}
             </span>
 
-            <select
-              aria-label="再生速度"
-              value={playbackSpeed}
-              onChange={(event) => setPlaybackSpeed(Number(event.target.value) as PlaybackSpeed)}
-              className="px-2 py-0.5 text-[10.5px] font-mono font-semibold rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0 cursor-pointer"
-              title={`再生速度 ${playbackSpeed}×（周期 ${scenarioDurationSec.toFixed(2)}s / 表示窓 ${ECG_WINDOW_SEC.toFixed(2)}s）。心臓とECGを同期して変更します。`}
-            >
-              {PLAYBACK_SPEEDS.map((speed) => (
-                <option key={speed} value={speed}>教育用 {speed}× ({scenarioDurationSec.toFixed(2)}s周期)</option>
-              ))}
-            </select>
+
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -221,6 +229,33 @@ export const App: React.FC = () => {
             </button>
           </div>
         </header>
+
+        <div role="group" aria-label="再生コントロール"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border-b border-slate-200 shrink-0">
+          <button type="button" onClick={handleTogglePlayback}
+            aria-label={isPlaying ? '一時停止' : '再生'}
+            className="flex items-center justify-center gap-1 px-2 py-1 min-w-20 rounded-md text-xs font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
+            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {isPlaying ? '一時停止' : '再生'}
+          </button>
+          <select aria-label="再生速度" value={playbackSpeed}
+            onChange={(event) => setPlaybackSpeed(Number(event.target.value) as PlaybackSpeed)}
+            className="px-1 py-1 text-xs font-mono rounded-md bg-slate-50 border border-slate-200 cursor-pointer"
+            title={`再生速度 ${playbackSpeed}×。心臓とECGを同期して変更します。`}>
+            {PLAYBACK_SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}×</option>)}
+          </select>
+          <input type="range" aria-label="再生位置" min={0} max={scenarioDurationSec} step={0.01}
+            value={masterTimeSec} aria-valuetext={`${masterTimeSec.toFixed(2)}秒 / ${scenarioDurationSec.toFixed(2)}秒`}
+            onChange={(event) => handleSeek(Number(event.target.value))}
+            className="flex-1 min-w-0 accent-blue-600 cursor-pointer"
+            title="位置を変更すると一時停止します。再生ボタンで続きから再開できます。" />
+          <span className="text-[10px] font-mono tabular-nums text-slate-600 whitespace-nowrap">
+            {masterTimeSec.toFixed(2)} / {scenarioDurationSec.toFixed(2)} s
+          </span>
+          <span className="text-[10px] text-slate-500 whitespace-nowrap hidden xl:inline">
+            {isPlaying ? '再生中' : '停止中・解説を固定'}
+          </span>
+        </div>
 
         {/* 中央ワークスペース：1366×768〜1920×1080で横スクロールなし・縦横同率スケーリング */}
         <div
