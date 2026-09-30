@@ -9,6 +9,7 @@ import { ConductionOverlay } from './ConductionOverlay';
 interface HeartDiagramProps {
   snapshot: MasterTimelineSnapshot;
   showElectricVector: boolean;
+  isJunctionalRhythm?: boolean;
 }
 
 /**
@@ -81,6 +82,7 @@ const RETROGRADE_ATRIAL_TRACKS: Partial<Record<MyocardialSubSegmentId, SubSegmen
 export const HeartDiagram: React.FC<HeartDiagramProps> = ({
   snapshot,
   showElectricVector,
+  isJunctionalRhythm = false,
 }) => {
   const { walls, subSegments, electricVector, isDextrocardia } = snapshot;
 
@@ -230,7 +232,7 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
             {/* 2b. 各サブセグメント内を進行する Activation Front 波頭ハイライトバンド */}
             <g className="pointer-events-none" clipPath="url(#myocardium-clip)" filter="url(#conduction-glow)">
               {SUB_SEGMENT_FRONT_TRACKS.map((normalTrack) => {
-                const track = snapshot.atrialPropagation === 'retrograde'
+                const track = isJunctionalRhythm && snapshot.atrialPropagation === 'retrograde'
                   ? RETROGRADE_ATRIAL_TRACKS[normalTrack.id] ?? normalTrack
                   : normalTrack;
                 const sub = subSegments[track.id];
@@ -272,7 +274,7 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
             </g>
 
             {/* 4. 刺激伝導系オーバーレイ（常時薄く表示＋発光＋先端光点＋ホバー名称） */}
-            <ConductionOverlay snapshot={snapshot} />
+            <ConductionOverlay snapshot={snapshot} isJunctionalRhythm={isJunctionalRhythm} />
           </g>
 
           {/* 5. 合成電気ベクトル（トグルON時 ＆ 意味のある合成ベクトルが存在する時のみ表示） */}

@@ -243,6 +243,7 @@ export const App: React.FC = () => {
             {/* 中央カラム: 教材用2.5D心尖部四腔断面 ＋ 下部下壁誘導 (II, aVF, III) */}
             <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 w-[480px]">
               <HeartDiagram
+                isJunctionalRhythm={currentDisease.id === 'junctional_rhythm'}
                 snapshot={snapshot}
                 showElectricVector={showElectricVector}
               />

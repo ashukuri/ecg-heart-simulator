@@ -3,6 +3,7 @@ import { ConductionPathId, ConductionPathRenderState, MasterTimelineSnapshot } f
 
 interface ConductionOverlayProps {
   snapshot: MasterTimelineSnapshot;
+  isJunctionalRhythm?: boolean;
 }
 
 interface PolylineDefinition {
@@ -83,7 +84,7 @@ function getStrokeColor(status: ConductionPathRenderState['status']): string {
   }
 }
 
-export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }) => {
+export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot, isJunctionalRhythm = false }) => {
   const [hoveredId, setHoveredId] = useState<ConductionPathId | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 200, y: 150 });
 
@@ -106,13 +107,13 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }
 
           // Junctional beats use the existing retrograde progress, but begin
           // the atrial drawing at the AV junction rather than the sinus node.
-          if (geo.id === 'sa_node' && snapshot.sourceRegion === 'av_junction' && !snapshot.saNodeFiring) {
+          if (isJunctionalRhythm && geo.id === 'sa_node' && snapshot.sourceRegion === 'av_junction' && !snapshot.saNodeFiring) {
             return <ellipse key={geo.id} cx={108} cy={85} rx={9} ry={6}
               fill="#475569" stroke="#94a3b8" strokeWidth={1.3} opacity={0.6}>
               <title>洞結節：停止（発火なし）</title>
             </ellipse>;
           }
-          const points = snapshot.atrialPropagation === 'retrograde'
+          const points = isJunctionalRhythm && snapshot.atrialPropagation === 'retrograde'
             ? RETROGRADE_ATRIAL_POINTS[geo.id] ?? geo.points
             : geo.points;
           const pathD = pointsToPathD(points);

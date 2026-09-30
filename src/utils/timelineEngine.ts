@@ -932,10 +932,13 @@ export function evaluateMasterTimeline(
 
   // 3. 各心拍イベント(BeatScheduleItem)を評価して伝導・心筋activation front・再分極・壁収縮を合成
   for (const beat of beats) {
-    const isAvJunctionSource =
+    // An AV-junction escape focus below a complete AV block does not
+    // retrogradely capture the independently firing sinus atria.
+    const isAvJunctionSource = !blockedSet.has('av_node') && (
       beat.sourceRegion === 'av_junction' ||
       profile.ectopicFocus === 'av_junction' ||
-      beat.atrialMode === 'retrograde';
+      beat.atrialMode === 'retrograde'
+    );
 
     const effectiveAtrialStartSec =
       isAvJunctionSource && beat.sourceStartSec !== undefined

@@ -24,7 +24,7 @@ try {
     assert.equal(snapshot.sourceRegion, 'av_junction');
     if (snapshot.subSegments.ra_inferior.phase !== 'front_active') continue;
     atrialSamples++;
-    const svg = renderToStaticMarkup(React.createElement(HeartDiagram, { snapshot, showElectricVector: false }));
+    const svg = renderToStaticMarkup(React.createElement(HeartDiagram, { snapshot, showElectricVector: false, isJunctionalRhythm: true }));
     assert.ok(svg.includes('洞結節：停止（発火なし）'));
     assert.ok(svg.includes('M 184 170 L 151 159'), 'RA conduction must start at the AV junction');
     assert.ok(svg.includes('M 184 170 L 211 148'), 'LA conduction must start at the AV junction');
@@ -40,6 +40,32 @@ try {
   const normal = evaluateMasterTimeline(getDiseaseById('normal'), 0.06);
   const normalSvg = renderToStaticMarkup(React.createElement(HeartDiagram, { snapshot: normal, showElectricVector: false }));
   assert.ok(normalSvg.includes('d="M 108 85'), 'normal antegrade conduction must retain its sinus origin');
+  const completeBlock = getDiseaseById('complete_av_block');
+  let sinusSamples = 0;
+  let atrialContractions = 0;
+  let ventricularContractions = 0;
+  let atriumWasContracting = false;
+  let ventricleWasContracting = false;
+  for (let t = 0; t < completeBlock.scenarioDurationSec; t += 0.005) {
+    const snapshot = evaluateMasterTimeline(completeBlock, t);
+    assert.notEqual(snapshot.atrialPropagation, 'retrograde', 'complete AV block must not retrogradely capture the atria');
+    const atriumContracting = snapshot.walls.ra_wall.contraction > 0.1;
+    const ventricleContracting = snapshot.walls.lv_lateral.contraction > 0.1;
+    if (atriumContracting && !atriumWasContracting) atrialContractions++;
+    if (ventricleContracting && !ventricleWasContracting) ventricularContractions++;
+    atriumWasContracting = atriumContracting;
+    ventricleWasContracting = ventricleContracting;
+    if (!snapshot.saNodeFiring) continue;
+    sinusSamples++;
+    const svg = renderToStaticMarkup(React.createElement(HeartDiagram, { snapshot, showElectricVector: false, isJunctionalRhythm: false }));
+    assert.ok(!svg.includes('洞結節：停止'), 'sinus node must remain active in complete AV block');
+    assert.ok(svg.includes('d="M 108 85'), 'atrial conduction must retain its sinus origin');
+    assert.ok(!svg.includes('d="M 184 170 L 151 159'), 'junctional retrograde drawing must not affect complete AV block');
+  }
+  assert.ok(sinusSamples > 0);
+  assert.equal(atrialContractions, 4, 'four independent sinus atrial contractions');
+  assert.equal(ventricularContractions, 2, 'two independent ventricular escape contractions');
+  console.log(`PASS: complete AV block keeps ${sinusSamples} sinus activation samples, 4 atrial and 2 ventricular independent contractions, without retrograde capture.`);
   console.log(`PASS: 3 playback speeds, loop wrapping, phase continuity; ${atrialSamples} junctional atrial samples with AV-origin rendering, ascending front and 14 segments; normal sinus origin retained.`);
 } finally {
   await server.close();
