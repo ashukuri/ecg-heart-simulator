@@ -13,135 +13,22 @@ interface PolylineDefinition {
   nodeRadius?: [number, number];
 }
 
-/**
- * 四腔断面座標系 (viewBox 0 0 400 430) 上の刺激伝導系座標定義
- * 心房が上 (y: 65..170)、房室弁輪・AV結節が中央 (y: 165..185)、
- * 心室中隔が中央縦 (x: 196, y: 185..365)、心尖部が下端 (x: 200, y: 380)
- */
+/** Drawing coordinates only; each path keeps its existing timeline ID. */
 const CONDUCTION_GEOMETRY: PolylineDefinition[] = [
-  {
-    id: 'sa_node',
-    isNode: true,
-    nodeCenter: [110, 86],
-    nodeRadius: [9, 6],
-    points: [[106, 86], [114, 86]],
-  },
-  {
-    id: 'internodal_ra',
-    points: [
-      [110, 86],
-      [118, 118],
-      [142, 145],
-      [182, 165],
-    ],
-  },
-  {
-    id: 'internodal_la',
-    points: [
-      [110, 86],
-      [165, 76],
-      [235, 82],
-      [278, 110],
-    ],
-  },
-  {
-    id: 'av_node',
-    isNode: true,
-    nodeCenter: [190, 169],
-    nodeRadius: [8, 5.5],
-    points: [
-      [182, 165],
-      [195, 173],
-    ],
-  },
-  {
-    id: 'his_bundle',
-    points: [
-      [195, 173],
-      [196, 194],
-      [196, 212],
-    ],
-  },
-  {
-    id: 'right_bundle',
-    points: [
-      [196, 212],
-      [183, 238],
-      [174, 278],
-      [166, 322],
-      [154, 348],
-    ],
-  },
-  {
-    id: 'left_bundle_stem',
-    points: [
-      [196, 212],
-      [208, 226],
-      [216, 238],
-    ],
-  },
-  {
-    id: 'left_bundle_ant',
-    points: [
-      [216, 238],
-      [236, 265],
-      [258, 302],
-      [272, 336],
-    ],
-  },
-  {
-    id: 'left_bundle_post',
-    points: [
-      [216, 238],
-      [214, 274],
-      [218, 315],
-      [226, 350],
-    ],
-  },
-  {
-    id: 'purkinje_rv',
-    points: [
-      [154, 348],
-      [132, 332],
-      [118, 296],
-      [112, 252],
-    ],
-  },
-  {
-    id: 'purkinje_lv',
-    points: [
-      [272, 336],
-      [292, 312],
-      [304, 268],
-      [298, 222],
-    ],
-  },
-  {
-    id: 'accessory_pathway',
-    points: [
-      [292, 152],
-      [298, 176],
-      [296, 204],
-    ],
-  },
-  {
-    id: 'transseptal_lv_to_rv',
-    points: [
-      [218, 285],
-      [196, 292],
-      [172, 300],
-      [142, 310],
-    ],
-  },
-  {
-    id: 'transseptal_rv_to_lv',
-    points: [
-      [172, 285],
-      [196, 292],
-      [224, 300],
-      [262, 308],
-    ],
-  },
+  { id: 'sa_node', points: [[104, 85], [112, 85]], isNode: true, nodeCenter: [108, 85], nodeRadius: [9, 6] },
+  { id: 'internodal_ra', points: [[108, 85], [105, 119], [135, 144], [181, 165]] },
+  { id: 'internodal_la', points: [[108, 85], [160, 78], [192, 96], [236, 77], [283, 101]] },
+  { id: 'av_node', points: [[181, 165], [188, 179]], isNode: true, nodeCenter: [184, 170], nodeRadius: [8, 5.5] },
+  { id: 'his_bundle', points: [[188, 179], [185, 198], [190, 218]] },
+  { id: 'right_bundle', points: [[190, 218], [180, 243], [189, 279], [204, 310], [210, 333]] },
+  { id: 'left_bundle_stem', points: [[190, 218], [205, 233], [214, 248]] },
+  { id: 'left_bundle_ant', points: [[214, 248], [251, 256], [283, 278], [298, 302]] },
+  { id: 'left_bundle_post', points: [[214, 248], [221, 280], [231, 320], [241, 350]] },
+  { id: 'purkinje_rv', points: [[210, 333], [176, 314], [147, 288], [126, 253], [112, 209]] },
+  { id: 'purkinje_lv', points: [[241, 350], [267, 332], [287, 300], [302, 255], [297, 208]] },
+  { id: 'accessory_pathway', points: [[298, 145], [306, 171], [313, 201]] },
+  { id: 'transseptal_lv_to_rv', points: [[226, 278], [203, 281], [180, 286], [149, 284]] },
+  { id: 'transseptal_rv_to_lv', points: [[180, 278], [203, 281], [234, 288], [279, 287]] },
 ];
 
 function pointsToPathD(pts: [number, number][]): string {
@@ -323,9 +210,11 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }
         <g className="pointer-events-none">
           {/* 右室側Purkinje小枝 */}
           {[
-            'M 154 348 L 142 358',
-            'M 132 332 L 122 318',
-            'M 118 296 L 108 282',
+            'M 210 333 Q 180 337 156 314 L 147 302',
+            'M 176 314 Q 163 288 156 268 L 146 252',
+            'M 147 288 Q 130 290 117 268 L 110 250',
+            'M 126 253 Q 147 244 154 218 L 151 204',
+            'M 112 209 L 126 222 L 137 226',
           ].map((d, idx) => (
             <path
               key={`rv-p-sub-${idx}`}
@@ -342,10 +231,11 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }
           ))}
           {/* 左室側Purkinje小枝 */}
           {[
-            'M 226 350 L 242 362',
-            'M 272 336 L 284 346',
-            'M 292 312 L 306 296',
-            'M 304 268 L 314 252',
+            'M 241 350 Q 250 324 249 300 L 239 280',
+            'M 267 332 Q 273 310 267 294 L 255 284',
+            'M 287 300 Q 267 276 259 254 L 260 231',
+            'M 302 255 Q 285 247 279 222 L 279 205',
+            'M 297 208 L 283 195 L 266 188',
           ].map((d, idx) => (
             <path
               key={`lv-p-sub-${idx}`}
@@ -450,9 +340,9 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot }
           {(() => {
             const focusCoords: Record<NonNullable<MasterTimelineSnapshot['ectopicFocus']>, [number, number]> = {
               atria_ectopic: [255, 105],
-              av_junction: [194, 178],
+              av_junction: [188, 179],
               rv_outflow: [138, 232],
-              lv_apex_scar: [262, 318],
+              lv_apex_scar: [267, 332],
               multi_ventricular: [232, 295],
             };
             const [fx, fy] = focusCoords[snapshot.ectopicFocus];

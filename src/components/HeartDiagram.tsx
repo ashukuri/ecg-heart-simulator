@@ -44,26 +44,6 @@ function getSubSegmentFillColor(sub: MyocardialSubSegmentState): string {
   return '#b83b4a';
 }
 
-function getSubSegmentStrokeColor(sub: MyocardialSubSegmentState): string {
-  if (sub.isInfarcted || sub.phase === 'infarcted') {
-    return '#64748b';
-  }
-  if (sub.phase === 'front_active') {
-    const isSlowOrEctopic =
-      sub.propagationMode === 'transmyocardial_slow' ||
-      sub.propagationMode === 'ectopic' ||
-      sub.propagationMode === 'chaotic';
-    return isSlowOrEctopic ? '#fed7aa' : '#fef9c3';
-  }
-  if (sub.phase === 'depolarized') {
-    return '#bae6fd';
-  }
-  if (sub.phase === 'repolarizing') {
-    return '#94a3b8';
-  }
-  return '#881d2c';
-}
-
 interface SubSegmentWaveFrontTrack {
   id: MyocardialSubSegmentId;
   startPt: [number, number];
@@ -74,20 +54,20 @@ interface SubSegmentWaveFrontTrack {
  * 各心筋サブセグメント内を進行する activation front 波頭バンドの解剖学的始点→終点トラック
  */
 const SUB_SEGMENT_FRONT_TRACKS: SubSegmentWaveFrontTrack[] = [
-  { id: 'ra_superior',     startPt: [116, 84],  endPt: [100, 118] },
-  { id: 'ra_inferior',     startPt: [100, 122], endPt: [102, 158] },
-  { id: 'la_body',         startPt: [222, 76],  endPt: [296, 142] },
-  { id: 'septal_middle',   startPt: [206, 255], endPt: [188, 255] },
-  { id: 'septal_superior', startPt: [204, 202], endPt: [188, 202] },
-  { id: 'septal_apical',   startPt: [204, 318], endPt: [192, 348] },
-  { id: 'rv_apical',       startPt: [176, 352], endPt: [142, 316] },
-  { id: 'rv_lateral',      startPt: [138, 310], endPt: [108, 242] },
-  { id: 'rv_basal',        startPt: [104, 236], endPt: [96, 182] },
-  { id: 'lv_apical',       startPt: [222, 358], endPt: [256, 332] },
-  { id: 'lv_inferior',     startPt: [198, 368], endPt: [218, 384] },
-  { id: 'lv_anterior',     startPt: [258, 328], endPt: [284, 296] },
-  { id: 'lv_lateral',      startPt: [284, 290], endPt: [304, 236] },
-  { id: 'lv_basal',        startPt: [304, 230], endPt: [306, 182] },
+  { id: 'ra_superior', startPt: [111, 80], endPt: [162, 77] },
+  { id: 'ra_inferior', startPt: [96, 119], endPt: [144, 160] },
+  { id: 'la_body', startPt: [224, 66], endPt: [288, 116] },
+  { id: 'septal_middle', startPt: [205, 257], endPt: [183, 255] },
+  { id: 'septal_superior', startPt: [200, 198], endPt: [180, 211] },
+  { id: 'septal_apical', startPt: [214, 312], endPt: [218, 343] },
+  { id: 'rv_apical', startPt: [193, 335], endPt: [142, 310] },
+  { id: 'rv_lateral', startPt: [134, 297], endPt: [105, 248] },
+  { id: 'rv_basal', startPt: [102, 233], endPt: [89, 178] },
+  { id: 'lv_apical', startPt: [240, 354], endPt: [275, 333] },
+  { id: 'lv_inferior', startPt: [236, 380], endPt: [251, 392] },
+  { id: 'lv_anterior', startPt: [278, 329], endPt: [302, 301] },
+  { id: 'lv_lateral', startPt: [304, 285], endPt: [316, 235] },
+  { id: 'lv_basal', startPt: [315, 224], endPt: [303, 174] },
 ];
 
 export const HeartDiagram: React.FC<HeartDiagramProps> = ({
@@ -124,6 +104,53 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
   );
   const valveDropY = 6 + avValveOpen * 11;
 
+  // One continuous myocardial surface. The same local contraction values deform
+  // its contour and cavities; activation is clipped to this moving tissue.
+  const silhouette = `M 181 84
+    C 158 51, ${100 + raSupShiftX} 53, ${82 + raSupShiftX} 96
+    C 68 120, ${73 + raInfShiftX} 151, 82 173
+    C ${70 + rvBasalShiftX} 214, ${88 + rvLatShiftX} 282, ${134 + rvApiShiftX} 329
+    C 170 364, 217 397, 245 ${399 + lvInfShiftY}
+    C 272 398, ${309 + lvApiShiftX} 357, ${325 + lvAntShiftX} 308
+    C ${346 + lvLatShiftX} 252, ${341 + lvBasalShiftX} 197, 310 159
+    C ${327 + laShiftX} 128, ${320 + laShiftX} 72, 285 ${59 + laShiftY}
+    C 247 43, 207 54, 192 83 Q 187 91, 181 84 Z`;
+  const raCavity = `M 171 91 C 150 ${66 + raShiftY}, ${111 + raSupShiftX} 69, ${97 + raSupShiftX} 103
+    C ${84 + raInfShiftX} 130, 98 153, 119 158 Q 148 165, 171 153
+    Q 188 120, 171 91 Z`;
+  const laCavity = `M 206 88 C 222 64, 260 61, ${286 + laShiftX} ${77 + laShiftY}
+    C ${307 + laShiftX} 95, 306 126, 292 148 Q 262 163, 219 153
+    Q 199 128, 206 88 Z`;
+  const rvCavity = `M ${96 + rvBasalShiftX} 178 Q 133 185, 171 176
+    C ${168 + septShiftX} 215, ${175 + septShiftX} 250, 190 287
+    Q 203 316, ${210 + rvApiShiftX} 337
+    C 173 327, ${134 + rvApiShiftX} 297, ${114 + rvLatShiftX} 253
+    Q ${97 + rvBasalShiftX} 215, ${96 + rvBasalShiftX} 178 Z`;
+  const lvCavity = `M 205 178 Q 247 167, ${290 + lvBasalShiftX} 177
+    C ${315 + lvLatShiftX} 215, ${310 + lvAntShiftX} 276, ${282 + lvApiShiftX} 325
+    Q 263 356, 241 ${364 + lvInfShiftY}
+    C 223 353, ${228 + septShiftX} 319, ${214 + septShiftX} 282
+    C ${195 + septShiftX} 240, ${188 + septShiftX} 209, 205 178 Z`;
+  const myocardium = `${silhouette} ${raCavity} ${laCavity} ${rvCavity} ${lvCavity}`;
+  // Regions have no outlines. Adjacent regions meet within a single tissue clip,
+  // preserving all 14 timeline IDs without drawing assembled pieces.
+  const activationRegions: { id: MyocardialSubSegmentId; d: string }[] = [
+    { id: 'ra_superior', d: 'M 50 40 H 195 V 115 H 50 Z' },
+    { id: 'ra_inferior', d: 'M 50 115 H 195 V 170 H 50 Z' },
+    { id: 'la_body', d: 'M 195 40 H 350 V 170 H 195 Z' },
+    { id: 'rv_basal', d: 'M 50 170 H 160 L 165 230 H 50 Z' },
+    { id: 'rv_lateral', d: 'M 50 230 H 165 L 195 300 L 145 330 H 50 Z' },
+    { id: 'rv_apical', d: 'M 145 330 L 195 300 L 230 354 L 223 378 H 50 V 330 Z' },
+    { id: 'septal_superior', d: 'M 160 170 H 228 L 232 230 H 165 Z' },
+    { id: 'septal_middle', d: 'M 165 230 H 232 L 245 300 H 195 Z' },
+    { id: 'septal_apical', d: 'M 195 300 H 245 L 252 354 H 230 Z' },
+    { id: 'lv_basal', d: 'M 228 170 H 360 V 230 H 232 Z' },
+    { id: 'lv_lateral', d: 'M 232 230 H 360 V 290 H 243 Z' },
+    { id: 'lv_anterior', d: 'M 243 290 H 360 V 330 H 249 Z' },
+    { id: 'lv_apical', d: 'M 249 330 H 360 V 378 H 223 L 230 354 H 252 Z' },
+    { id: 'lv_inferior', d: 'M 50 378 H 360 V 420 H 50 Z' },
+  ];
+
   return (
     <div className="relative flex flex-col items-center justify-center select-none pointer-events-none">
       {/* 中央2.5D四腔断面SVGキャンバス */}
@@ -133,6 +160,14 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
           className="w-full h-full drop-shadow-[0_10px_24px_rgba(15,23,42,0.10)]"
         >
           <defs>
+            <linearGradient id="myocardium-grad" x1="0" y1="0" x2="1" y2="0.8">
+              <stop offset="0%" stopColor="#d46870" />
+              <stop offset="45%" stopColor="#b94353" />
+              <stop offset="100%" stopColor="#88283d" />
+            </linearGradient>
+            <clipPath id="myocardium-clip">
+              <path d={myocardium} clipRule="evenodd" />
+            </clipPath>
             {/* 2.5D立体陰影フィルター */}
             <filter id="heart-25d-shadow" x="-15%" y="-15%" width="130%" height="130%">
               <feDropShadow dx="0" dy="5" stdDeviation="6" floodColor="#0f172a" floodOpacity="0.16" />
@@ -166,231 +201,26 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
 
           {/* 右胸心時は心臓断面全体を左右鏡像反転 */}
           <g transform={isDextrocardia ? 'translate(400, 0) scale(-1, 1)' : undefined}>
-            {/* 0. 外膜・心膜シルエット（2.5D厚みベース） */}
-            <path
-              d="M 196 56
-                 C 122 54, 76 92, 78 156
-                 C 79 178, 86 196, 84 222
-                 C 80 286, 118 358, 198 396
-                 C 282 362, 330 282, 326 210
-                 C 324 186, 316 170, 316 148
-                 C 316 90, 270 58, 196 56 Z"
-              fill="#6e1725"
-              stroke="#4c0f19"
-              strokeWidth="2.5"
-              filter="url(#heart-25d-shadow)"
-            />
-
-            {/* 1. 4つの心腔内腔（右房・左房・右室・左室の暗赤色内腔） */}
-            {/* 右房内腔 */}
-            <path
-              d={`M ${98 + raSupShiftX} ${96 + raShiftY}
-                  C ${96 + raSupShiftX} 72, 146 68, 188 76
-                  L 188 164
-                  L ${104 + raInfShiftX} 164
-                  C ${96 + raInfShiftX} 145, ${96 + raSupShiftX} 118, ${98 + raSupShiftX} ${96 + raShiftY} Z`}
-              fill="url(#chamber-cavity-grad)"
-            />
-            {/* 左房内腔 */}
-            <path
-              d={`M 204 76
-                  C 246 68, ${296 + laShiftX} 74, ${296 + laShiftX} ${98 + laShiftY}
-                  C ${298 + laShiftX} 122, ${296 + laShiftX} 145, ${290 + laShiftX} 164
-                  L 204 164 Z`}
-              fill="url(#chamber-cavity-grad)"
-            />
-            {/* 右室内腔 */}
-            <path
-              d={`M ${106 + rvBasalShiftX} 180
-                  L 184 180
-                  L ${184 + septShiftX} 346
-                  C 148 332, ${114 + rvLatShiftX} 276, ${106 + rvBasalShiftX} 180 Z`}
-              fill="url(#chamber-cavity-grad)"
-            />
-            {/* 左室内腔 */}
-            <path
-              d={`M 210 180
-                  L ${292 + lvBasalShiftX} 180
-                  C ${296 + lvLatShiftX} 268, ${264 + lvAntShiftX} 336, 208 ${352 + lvInfShiftY}
-                  L ${210 + septShiftX} 180 Z`}
-              fill="url(#chamber-cavity-grad)"
-            />
-
-            {/* 2. 14心筋表示サブセグメント（Activation Front・興奮済み心筋・再分極・梗塞・局所収縮） */}
-
-            {/* [Atrial 1] 右房上部 (ra_superior) */}
-            <path
-              d={`M 188 62
-                  C 138 58, ${92 + raSupShiftX} 76, ${84 + raSupShiftX} 118
-                  L ${102 + raSupShiftX} 118
-                  C ${106 + raSupShiftX} 84, 145 72, 188 78 Z`}
-              fill={getSubSegmentFillColor(subSegments.ra_superior)}
-              stroke={getSubSegmentStrokeColor(subSegments.ra_superior)}
-              strokeWidth="1.5"
-            />
-
-            {/* [Atrial 2] 右房下部 (ra_inferior) */}
-            <path
-              d={`M ${84 + raSupShiftX} 118
-                  L ${84 + raInfShiftX} 154
-                  L ${102 + raInfShiftX} 164
-                  L ${102 + raSupShiftX} 118 Z`}
-              fill={getSubSegmentFillColor(subSegments.ra_inferior)}
-              stroke={getSubSegmentStrokeColor(subSegments.ra_inferior)}
-              strokeWidth="1.5"
-            />
-
-            {/* [Atrial 3] 左房自由壁 (la_body) */}
-            <path
-              d={`M 204 62
-                  C 264 58, ${310 + laShiftX} 86, ${308 + laShiftX} 152
-                  L ${290 + laShiftX} 164
-                  L ${290 + laShiftX} 102
-                  C ${288 + laShiftX} 78, 248 72, 204 78 Z`}
-              fill={getSubSegmentFillColor(subSegments.la_body)}
-              stroke={getSubSegmentStrokeColor(subSegments.la_body)}
-              strokeWidth="1.5"
-            />
-
-            {/* 心房中隔 */}
-            <rect
-              x={189}
-              y={66}
-              width={14}
-              height={102}
-              rx={5}
-              fill={getSubSegmentFillColor(subSegments.ra_inferior)}
-              stroke={getSubSegmentStrokeColor(subSegments.ra_inferior)}
-              strokeWidth="1.2"
-            />
-
-            {/* [Ventricular 1] 右室基部・流出路 (rv_basal) */}
-            <path
-              d={`M ${86 + rvBasalShiftX} 176
-                  L ${106 + rvBasalShiftX} 176
-                  L ${112 + rvLatShiftX} 236
-                  L ${92 + rvLatShiftX} 236 Z`}
-              fill={getSubSegmentFillColor(subSegments.rv_basal)}
-              stroke={getSubSegmentStrokeColor(subSegments.rv_basal)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 2] 右室自由壁中部 (rv_lateral) */}
-            <path
-              d={`M ${92 + rvLatShiftX} 236
-                  L ${112 + rvLatShiftX} 236
-                  C ${118 + rvLatShiftX} 274, ${132 + rvApiShiftX} 302, ${146 + rvApiShiftX} 320
-                  L ${128 + rvApiShiftX} 336
-                  C ${106 + rvLatShiftX} 308, ${94 + rvLatShiftX} 274, ${92 + rvLatShiftX} 236 Z`}
-              fill={getSubSegmentFillColor(subSegments.rv_lateral)}
-              stroke={getSubSegmentStrokeColor(subSegments.rv_lateral)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 3] 右室心尖部 (rv_apical) */}
-            <path
-              d={`M ${128 + rvApiShiftX} 336
-                  L ${146 + rvApiShiftX} 320
-                  C 162 336, 176 346, 188 352
-                  L 194 386
-                  C 166 372, 144 356, ${128 + rvApiShiftX} 336 Z`}
-              fill={getSubSegmentFillColor(subSegments.rv_apical)}
-              stroke={getSubSegmentStrokeColor(subSegments.rv_apical)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 4] 心室中隔上部 (septal_superior) */}
-            <path
-              d={`M 184 172
-                  L 210 172
-                  L ${210 + septShiftX * 0.4} 226
-                  L ${184 + septShiftX * 0.4} 226 Z`}
-              fill={getSubSegmentFillColor(subSegments.septal_superior)}
-              stroke={getSubSegmentStrokeColor(subSegments.septal_superior)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 5] 心室中隔中部 (septal_middle — 正常・RBBBで最初に左→右へ脱分極) */}
-            <path
-              d={`M ${184 + septShiftX * 0.4} 226
-                  L ${210 + septShiftX * 0.4} 226
-                  L ${211 + septShiftX * 0.8} 292
-                  L ${183 + septShiftX * 0.8} 292 Z`}
-              fill={getSubSegmentFillColor(subSegments.septal_middle)}
-              stroke={getSubSegmentStrokeColor(subSegments.septal_middle)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 6] 心室中隔下部 (septal_apical) */}
-            <path
-              d={`M ${183 + septShiftX * 0.8} 292
-                  L ${211 + septShiftX * 0.8} 292
-                  L ${212 + septShiftX} 358
-                  L 196 382
-                  L ${182 + septShiftX} 354 Z`}
-              fill={getSubSegmentFillColor(subSegments.septal_apical)}
-              stroke={getSubSegmentStrokeColor(subSegments.septal_apical)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 7] 左室下壁 (lv_inferior) */}
-            <path
-              d={`M 194 386
-                  L 188 352
-                  L 214 354
-                  L 224 ${386 + lvInfShiftY}
-                  C 212 ${394 + lvInfShiftY}, 202 ${394 + lvInfShiftY}, 194 386 Z`}
-              fill={getSubSegmentFillColor(subSegments.lv_inferior)}
-              stroke={getSubSegmentStrokeColor(subSegments.lv_inferior)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 8] 左室心尖部 (lv_apical) */}
-            <path
-              d={`M 214 354
-                  L ${248 + lvApiShiftX} 330
-                  L ${266 + lvApiShiftX} 348
-                  C 252 366, 238 378, 224 ${386 + lvInfShiftY} Z`}
-              fill={getSubSegmentFillColor(subSegments.lv_apical)}
-              stroke={getSubSegmentStrokeColor(subSegments.lv_apical)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 9] 左室前側壁 (lv_anterior) */}
-            <path
-              d={`M ${248 + lvApiShiftX} 330
-                  L ${274 + lvAntShiftX} 292
-                  L ${296 + lvAntShiftX} 308
-                  C ${286 + lvAntShiftX} 326, ${276 + lvApiShiftX} 338, ${266 + lvApiShiftX} 348 Z`}
-              fill={getSubSegmentFillColor(subSegments.lv_anterior)}
-              stroke={getSubSegmentStrokeColor(subSegments.lv_anterior)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 10] 左室側壁中部 (lv_lateral) */}
-            <path
-              d={`M ${274 + lvAntShiftX} 292
-                  C ${286 + lvLatShiftX} 266, ${292 + lvLatShiftX} 246, ${292 + lvLatShiftX} 228
-                  L ${318 + lvLatShiftX} 228
-                  C ${316 + lvLatShiftX} 258, ${308 + lvAntShiftX} 286, ${296 + lvAntShiftX} 308 Z`}
-              fill={getSubSegmentFillColor(subSegments.lv_lateral)}
-              stroke={getSubSegmentStrokeColor(subSegments.lv_lateral)}
-              strokeWidth="1.6"
-            />
-
-            {/* [Ventricular 11] 左室側壁基部 (lv_basal — WPWデルタ波起始部 / 正常最終脱分極部) */}
-            <path
-              d={`M ${292 + lvBasalShiftX} 176
-                  L ${320 + lvBasalShiftX} 176
-                  L ${318 + lvLatShiftX} 228
-                  L ${292 + lvLatShiftX} 228 Z`}
-              fill={getSubSegmentFillColor(subSegments.lv_basal)}
-              stroke={getSubSegmentStrokeColor(subSegments.lv_basal)}
-              strokeWidth="1.6"
-            />
+            <path d={myocardium} fill="url(#myocardium-grad)" fillRule="evenodd"
+              stroke="#651b2b" strokeWidth={2} strokeLinejoin="round"
+              filter="url(#heart-25d-shadow)" />
+            <g fill="url(#chamber-cavity-grad)" stroke="#e89091" strokeOpacity={0.5} strokeWidth={1.4}>
+              <path d={raCavity} />
+              <path d={laCavity} />
+              <path d={rvCavity} />
+              <path d={lvCavity} />
+            </g>
+            <g clipPath="url(#myocardium-clip)" className="pointer-events-none">
+              {activationRegions.map(({ id, d }) => {
+                const sub = subSegments[id];
+                return <path key={id} data-segment={id} d={d}
+                  fill={getSubSegmentFillColor(sub)}
+                  opacity={sub.phase === 'resting' ? 0 : sub.isInfarcted ? 0.85 : 0.65} />;
+              })}
+            </g>
 
             {/* 2b. 各サブセグメント内を進行する Activation Front 波頭ハイライトバンド */}
-            <g className="pointer-events-none" filter="url(#conduction-glow)">
+            <g className="pointer-events-none" clipPath="url(#myocardium-clip)" filter="url(#conduction-glow)">
               {SUB_SEGMENT_FRONT_TRACKS.map((track) => {
                 const sub = subSegments[track.id];
                 if (!sub || sub.phase !== 'front_active' || sub.isInfarcted) return null;
@@ -419,14 +249,12 @@ export const HeartDiagram: React.FC<HeartDiagramProps> = ({
               })}
             </g>
 
-            {/* 3. 房室弁（三尖弁・僧帽弁）の白い弁尖 */}
-            <g stroke="#f1f5f9" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity={0.88}>
-              {/* 三尖弁 (右房-右室間) */}
-              <path d={`M ${104 + raInfShiftX} 170 Q 128 ${172 + valveDropY} 138 ${176 + valveDropY}`} />
-              <path d={`M 184 170 Q 164 ${172 + valveDropY} 154 ${176 + valveDropY}`} />
-              {/* 僧帽弁 (左房-左室間) */}
-              <path d={`M 210 170 Q 232 ${172 + valveDropY} 242 ${176 + valveDropY}`} />
-              <path d={`M ${292 + laShiftX} 170 Q 268 ${172 + valveDropY} 258 ${176 + valveDropY}`} />
+            {/* Small leaflet pairs mark the two atrioventricular openings. */}
+            <g stroke="#ffe1d7" strokeWidth={2.6} strokeLinecap="round" fill="none" opacity={0.9}>
+              <path d={`M ${99 + raInfShiftX} 168 Q 122 ${171 + valveDropY} 139 ${170 + valveDropY}`} />
+              <path d={`M 174 165 Q 160 ${169 + valveDropY} 149 ${171 + valveDropY}`} />
+              <path d={`M 204 167 Q 221 ${168 + valveDropY} 239 ${169 + valveDropY}`} />
+              <path d={`M ${290 + laShiftX} 166 Q 269 ${169 + valveDropY} 251 ${170 + valveDropY}`} />
             </g>
 
             {/* 4. 刺激伝導系オーバーレイ（常時薄く表示＋発光＋先端光点＋ホバー名称） */}
