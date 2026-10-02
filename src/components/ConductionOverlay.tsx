@@ -80,7 +80,7 @@ function getStrokeColor(status: ConductionPathRenderState['status']): string {
       return '#ef4444'; // 赤: 完全遮断
     case 'waiting':
     default:
-      return 'rgba(253, 224, 71, 0.28)'; // 待機中の伝導路: 薄い低彩度色
+      return 'rgba(253, 224, 71, 0.48)'; // 待機中も伝導系の構造が見える低彩度色
   }
 }
 
@@ -142,9 +142,9 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot, 
                       ? 'rgba(239, 68, 68, 0.35)'
                       : isExcited
                         ? activeColor
-                        : 'rgba(253, 224, 71, 0.26)'
+                        : 'rgba(253, 224, 71, 0.48)'
                   }
-                  stroke={state.status === 'blocked' ? '#ef4444' : isExcited ? '#fef08a' : 'rgba(253, 224, 71, 0.55)'}
+                  stroke={state.status === 'blocked' ? '#ef4444' : isExcited ? '#fef08a' : 'rgba(253, 224, 71, 0.7)'}
                   strokeWidth={isExcited ? 2.2 : 1.3}
                 />
               ) : (
@@ -152,7 +152,7 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot, 
                   <path
                     d={pathD}
                     fill="none"
-                    stroke={state.status === 'blocked' ? 'rgba(239, 68, 68, 0.55)' : 'rgba(253, 224, 71, 0.26)'}
+                    stroke={state.status === 'blocked' ? 'rgba(239, 68, 68, 0.55)' : 'rgba(253, 224, 71, 0.48)'}
                     strokeWidth={geo.id.startsWith('purkinje') ? 2.2 : 3.2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -240,7 +240,7 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot, 
               stroke={
                 snapshot.paths.purkinje_rv.progress > 0.3
                   ? getStrokeColor(snapshot.paths.purkinje_rv.status)
-                  : 'rgba(253, 224, 71, 0.22)'
+                  : 'rgba(253, 224, 71, 0.44)'
               }
               strokeWidth={1.8}
               strokeLinecap="round"
@@ -261,7 +261,7 @@ export const ConductionOverlay: React.FC<ConductionOverlayProps> = ({ snapshot, 
               stroke={
                 snapshot.paths.purkinje_lv.progress > 0.3
                   ? getStrokeColor(snapshot.paths.purkinje_lv.status)
-                  : 'rgba(253, 224, 71, 0.22)'
+                  : 'rgba(253, 224, 71, 0.44)'
               }
               strokeWidth={1.8}
               strokeLinecap="round"

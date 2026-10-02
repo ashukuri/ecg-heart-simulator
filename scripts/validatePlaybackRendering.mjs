@@ -20,6 +20,20 @@ try {
   assert.equal(clampPlaybackTimeSec(1.27, 2.4), 1.27);
   assert.equal(clampPlaybackTimeSec(NaN, 2.4), 0);
   assert.ok(Math.abs(advancePlaybackTimeSec(clampPlaybackTimeSec(2.4, 2.4), 0.1, 2.4, 1) - 0.1) < 1e-12);
+  const { RECORDING_LEAD_POSITIONS, STANDARD_LEAD_POSITIONS, STANDARD_LEAD_ROWS } = await server.ssrLoadModule('/src/utils/ecgLayout.ts');
+  for (const [positions, width] of [[RECORDING_LEAD_POSITIONS, 808], [STANDARD_LEAD_POSITIONS, 1008]]) {
+    assert.equal(Object.keys(positions).length, 12);
+    const boxes = Object.entries(positions).map(([id, { x, y }]) => ({ id, x, y }));
+    for (const box of boxes) {
+      assert.ok(box.x >= 0 && box.y >= 0 && box.x + 156 <= width && box.y + 108 <= 544, `${box.id} must fit the stage`);
+      for (const other of boxes) {
+        if (box.id === other.id) continue;
+        assert.ok(box.x + 156 <= other.x || other.x + 156 <= box.x || box.y + 108 <= other.y || other.y + 108 <= box.y, 'ECG cards must not overlap');
+      }
+    }
+  }
+  assert.deepEqual(STANDARD_LEAD_ROWS, [['I', 'aVR', 'V1', 'V4'], ['II', 'aVL', 'V2', 'V5'], ['III', 'aVF', 'V3', 'V6']]);
+  console.log('PASS: 12 unique ECG cards in both layouts, standard 3×4 ordering, no overlaps or cards outside either stage.');
   const junctional = getDiseaseById('junctional_rhythm');
   let atrialSamples = 0;
   const lowerRAFronts = [];
